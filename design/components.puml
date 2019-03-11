@@ -1,0 +1,16 @@
+@startuml
+
+package discovery
+package index {
+    node raft
+}
+package fs {
+    node transfer
+    node store
+}
+package config {
+    node yaml
+    node ui
+}
+
+@enduml
