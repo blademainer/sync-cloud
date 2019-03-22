@@ -4,8 +4,6 @@
 # 设计
 没有明确的客户端和服务端概念，所有的端都可以是客户端，也可以是服务端。
 
-
-
 # 设计参考
 ## 服务发现
 https://go.etcd.io/etcd/blob/master/Documentation/op-guide/clustering.md#etcd-discovery
