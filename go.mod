@@ -1,7 +1,6 @@
 module github.com/blademainer/sync-cloud
 
 require (
-	github.com/coreos/etcd v3.3.12+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190318101727-c7c1946145b6 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/etcd-io/etcd v3.3.12+incompatible
