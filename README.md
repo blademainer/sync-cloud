@@ -8,9 +8,9 @@
 
 # 设计参考
 ## 服务发现
-https://github.com/etcd-io/etcd/blob/master/Documentation/op-guide/clustering.md#etcd-discovery
+https://go.etcd.io/etcd/blob/master/Documentation/op-guide/clustering.md#etcd-discovery
 
 # 开源引用
 - [fsnotify/fsnotify](https://github.com/fsnotify/fsnotify)
-- [etcd-io/etcd](https://github.com/etcd-io/etcd/tree/master/contrib/raftexample)
+- [etcd-io/etcd](https://go.etcd.io/etcd/tree/master/contrib/raftexample)
 - [filebrowser](https://github.com/filebrowser/filebrowser)
