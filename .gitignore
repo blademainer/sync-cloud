@@ -224,3 +224,4 @@ tmp
 bin
 go-build*go-exercise
 go.sum
+raftexample-*
