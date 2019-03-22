@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
-GO111MODULE=on
-go mod verify
+export GO111MODULE=on
 go build -o bin/raft_example ./pkg/raft_example
