@@ -127,6 +127,9 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 }
 
 func (s *kvstore) store() {
+	if s.kvFilePath == "" || s.kvFile == nil {
+		return
+	}
 	jsonBytes, e := json.Marshal(s.kvStore)
 	if e != nil {
 		log.Fatal(e)
