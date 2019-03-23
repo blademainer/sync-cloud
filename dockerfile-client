@@ -1,0 +1,6 @@
+FROM scratch
+ENV SERVER_ADDR iflowercity.cn:1717
+ENV WORKDIR /usr/local/galaxy
+COPY bin/client $WORKDIR
+WORKDIR /usr/local/galaxy/
+CMD ["./client"]

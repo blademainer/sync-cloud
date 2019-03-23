@@ -225,3 +225,4 @@ bin
 go-build*go-exercise
 go.sum
 raftexample-*
+kv-*.json

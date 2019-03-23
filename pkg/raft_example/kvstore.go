@@ -18,7 +18,10 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
+	"github.com/coreos/etcd/pkg/ioutil"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/coreos/etcd/snap"
@@ -30,6 +33,8 @@ type kvstore struct {
 	mu          sync.RWMutex
 	kvStore     map[string]string // current committed key-value pairs
 	snapshotter *snap.Snapshotter
+	kvFilePath  string
+	kvFile      *os.File
 }
 
 type kv struct {
@@ -37,8 +42,16 @@ type kv struct {
 	Val string
 }
 
-func newKVStore(snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *string, errorC <-chan error) *kvstore {
-	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter}
+const KV_FILE = "kv-%d.json"
+
+func newKVStore(id int, snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *string, errorC <-chan error) *kvstore {
+	kvFilePath := fmt.Sprintf(KV_FILE, id)
+	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter, kvFilePath: kvFilePath}
+	kvFile, e := os.OpenFile(kvFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	s.kvFile = kvFile
+	if e != nil {
+		log.Fatal(e)
+	}
 	// replay log into key-value map
 	s.readCommits(commitC, errorC)
 	// read commits from raft into kvStore map until error
@@ -87,6 +100,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 		}
 		s.mu.Lock()
 		s.kvStore[dataKv.Key] = dataKv.Val
+		s.store()
 		s.mu.Unlock()
 	}
 	if err, ok := <-errorC; ok {
@@ -107,6 +121,21 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	}
 	s.mu.Lock()
 	s.kvStore = store
+	s.store()
 	s.mu.Unlock()
 	return nil
+}
+
+func (s *kvstore) store() {
+	jsonBytes, e := json.Marshal(s.kvStore)
+	if e != nil {
+		log.Fatal(e)
+	}
+	//n, e2 := s.kvFile.Write(jsonBytes)
+	e2 := ioutil.WriteAndSyncFile(s.kvFilePath, jsonBytes, os.ModePerm)
+	if e2 != nil {
+		log.Fatal(e)
+	} else {
+		log.Printf("Write json: %v length: %v", string(jsonBytes), len(jsonBytes))
+	}
 }
