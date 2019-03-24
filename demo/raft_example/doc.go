@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// raftexample is a simple KV store using the raft and rafthttp libraries.
+// raftexample is a simple KV recover using the raft and rafthttp libraries.
 package main

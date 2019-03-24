@@ -27,7 +27,7 @@ import (
 	"github.com/coreos/etcd/snap"
 )
 
-// a key-value store backed by raft
+// a key-value recover backed by raft
 type kvstore struct {
 	proposeC    chan<- string // channel for proposing updates
 	mu          sync.RWMutex
@@ -100,7 +100,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 		}
 		s.mu.Lock()
 		s.kvStore[dataKv.Key] = dataKv.Val
-		s.store()
+		s.add(dataKv)
 		s.mu.Unlock()
 	}
 	if err, ok := <-errorC; ok {
@@ -121,23 +121,27 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	}
 	s.mu.Lock()
 	s.kvStore = store
-	s.store()
+	s.recover(snapshot)
 	s.mu.Unlock()
 	return nil
 }
 
-func (s *kvstore) store() {
+func (s *kvstore) add(dataKv kv) {
+
+}
+
+func (s *kvstore) recover(jsonBytes []byte) {
 	if s.kvFilePath == "" || s.kvFile == nil {
 		return
 	}
-	jsonBytes, e := json.Marshal(s.kvStore)
-	if e != nil {
-		log.Fatal(e)
-	}
+	//jsonBytes, e := json.Marshal(s.kvStore)
+	//if e != nil {
+	//	log.Fatal(e)
+	//}
 	//n, e2 := s.kvFile.Write(jsonBytes)
 	e2 := ioutil.WriteAndSyncFile(s.kvFilePath, jsonBytes, os.ModePerm)
 	if e2 != nil {
-		log.Fatal(e)
+		log.Fatal(e2)
 	} else {
 		log.Printf("Write json: %v length: %v", string(jsonBytes), len(jsonBytes))
 	}

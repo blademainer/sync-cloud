@@ -42,6 +42,6 @@ func Test_kvstore_snapshot(t *testing.T) {
 		t.Fatalf("foo has unexpected value, got %s", v)
 	}
 	if !reflect.DeepEqual(s.kvStore, tm) {
-		t.Fatalf("store expected %+v, got %+v", tm, s.kvStore)
+		t.Fatalf("recover expected %+v, got %+v", tm, s.kvStore)
 	}
 }

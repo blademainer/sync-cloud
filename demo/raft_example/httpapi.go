@@ -23,7 +23,7 @@ import (
 	"github.com/coreos/etcd/raft/raftpb"
 )
 
-// Handler for a http based key-value store backed by raft
+// Handler for a http based key-value recover backed by raft
 type httpKVAPI struct {
 	store       *kvstore
 	confChangeC chan<- raftpb.ConfChange

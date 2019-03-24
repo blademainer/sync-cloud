@@ -422,7 +422,7 @@ func (rc *raftNode) serveChannels() {
 		case <-ticker.C:
 			rc.node.Tick()
 
-		// store raft entries to wal, then publish over commit channel
+		// recover raft entries to wal, then publish over commit channel
 		case rd := <-rc.node.Ready():
 			rc.wal.Save(rd.HardState, rd.Entries)
 			if !raft.IsEmptySnap(rd.Snapshot) {
