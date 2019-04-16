@@ -1,0 +1,148 @@
+// Copyright 2015 The etcd Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"bytes"
+	"encoding/gob"
+	"encoding/json"
+	"fmt"
+	"github.com/coreos/etcd/pkg/ioutil"
+	"log"
+	"os"
+	"sync"
+
+	"github.com/coreos/etcd/snap"
+)
+
+// a key-value recover backed by raft
+type kvstore struct {
+	proposeC    chan<- string // channel for proposing updates
+	mu          sync.RWMutex
+	kvStore     map[string]string // current committed key-value pairs
+	snapshotter *snap.Snapshotter
+	kvFilePath  string
+	kvFile      *os.File
+}
+
+type kv struct {
+	Key string
+	Val string
+}
+
+const KV_FILE = "kv-%d.json"
+
+func newKVStore(id int, snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *string, errorC <-chan error) *kvstore {
+	kvFilePath := fmt.Sprintf(KV_FILE, id)
+	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter, kvFilePath: kvFilePath}
+	kvFile, e := os.OpenFile(kvFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	s.kvFile = kvFile
+	if e != nil {
+		log.Fatal(e)
+	}
+	// replay log into key-value map
+	s.readCommits(commitC, errorC)
+	// read commits from raft into kvStore map until error
+	go s.readCommits(commitC, errorC)
+	return s
+}
+
+func (s *kvstore) Lookup(key string) (string, bool) {
+	s.mu.RLock()
+	v, ok := s.kvStore[key]
+	s.mu.RUnlock()
+	return v, ok
+}
+
+func (s *kvstore) Propose(k string, v string) {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil {
+		log.Fatal(err)
+	}
+	s.proposeC <- buf.String()
+}
+
+func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
+	for data := range commitC {
+		if data == nil {
+			// done replaying log; new data incoming
+			// OR signaled to load snapshot
+			snapshot, err := s.snapshotter.Load()
+			if err == snap.ErrNoSnapshot {
+				return
+			}
+			if err != nil && err != snap.ErrNoSnapshot {
+				log.Panic(err)
+			}
+			log.Printf("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
+			if err := s.recoverFromSnapshot(snapshot.Data); err != nil {
+				log.Panic(err)
+			}
+			continue
+		}
+
+		var dataKv kv
+		dec := gob.NewDecoder(bytes.NewBufferString(*data))
+		if err := dec.Decode(&dataKv); err != nil {
+			log.Fatalf("raftexample: could not decode message (%v)", err)
+		}
+		s.mu.Lock()
+		s.kvStore[dataKv.Key] = dataKv.Val
+		s.add(dataKv)
+		s.mu.Unlock()
+	}
+	if err, ok := <-errorC; ok {
+		log.Fatal(err)
+	}
+}
+
+func (s *kvstore) getSnapshot() ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return json.Marshal(s.kvStore)
+}
+
+func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
+	var store map[string]string
+	if err := json.Unmarshal(snapshot, &store); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.kvStore = store
+	s.recover(snapshot)
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *kvstore) add(dataKv kv) {
+
+}
+
+func (s *kvstore) recover(jsonBytes []byte) {
+	if s.kvFilePath == "" || s.kvFile == nil {
+		return
+	}
+	//jsonBytes, e := json.Marshal(s.kvStore)
+	//if e != nil {
+	//	log.Fatal(e)
+	//}
+	//n, e2 := s.kvFile.Write(jsonBytes)
+	e2 := ioutil.WriteAndSyncFile(s.kvFilePath, jsonBytes, os.ModePerm)
+	if e2 != nil {
+		log.Fatal(e2)
+	} else {
+		log.Printf("Write json: %v length: %v", string(jsonBytes), len(jsonBytes))
+	}
+}
