@@ -7,8 +7,10 @@ type Data interface {
 	Decode([]byte) interface{}
 }
 
-type Interfaces interface {
+type Store interface {
+	// Store data to local
 	Store(Data)
+	// Recover all data
 	Recover([]Data)
 	SetPath(path string)
 	StoreType() string
