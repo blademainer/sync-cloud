@@ -1,18 +1,26 @@
 language: go
-
 go:
   - 1.11.x
   - 1.12.x
   - 1.x
-
+services:
+  - docker
 env:
-- GO111MODULE=on
-
-
+  - GO111MODULE=on
+  global:
+    - BASE_REPO=pjoc/etcd-sync
+    - DOCKER_TAG=${TRAVIS_COMMIT:0:7}
+    - DEV_REPO=${BASE_REPO}:$DOCKER_TAG
+    - RELEASE_REPO=${BASE_REPO}:$TRAVIS_TAG
+    - LATEST_REPO=${BASE_REPO}:latest
 before_install:
-- chmod +x *.sh
-
-
-
+  - chmod +x *.sh
+  - env
+  - docker login -u$DOCKER_USER -p$DOCKER_PASS
 install:
   - ./go_build.sh
+  - if [[ -z "$TRAVIS_TAG" ]]; then docker build ./ -t $DEV_REPO && docker push $DEV_REPO;
+    fi
+  - if [[ -n "$TRAVIS_TAG" ]]; then docker pull $DEV_REPO && docker tag $DEV_REPO $RELEASE_REPO
+    && docker tag $DEV_REPO $LATEST_REPO && docker push $RELEASE_REPO && docker push
+    $LATEST_REPO; fi
