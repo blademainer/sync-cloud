@@ -1,16 +1,27 @@
 language: go
-
 go:
   - 1.13
 
+services:
+- docker
 env:
-- GO111MODULE=on
-
-
+  global:
+  - GO111MODULE=on
+  - BASE_REPO=pjoc/etcd-sync
+  - DOCKER_TAG=${TRAVIS_COMMIT:0:7}
+  - DEV_REPO=${BASE_REPO}:$DOCKER_TAG
+  - RELEASE_REPO=${BASE_REPO}:$TRAVIS_TAG
+  - LATEST_REPO=${BASE_REPO}:latest
+  - secure: rEY5rbM5Eglz6bVFdDbS7dSHe/21o61LqYrq1sdbD/jICr+87HBOPF3kP/dYshyWwyXFVIuLQEr6ykGcKI2/UWD5xsUuZEZaEIHohcig9BpDcqS7MEoI1zKr9Okur0SyZxFGrpwvUMKt08b46lU9af+FstQAIHLNzOi3GhObMfAMfWvYk4Xr05XZ+R0GvkU4sEgIO/UkPkz/AG9EFvCtRbNP+ZBWZuhI9Fb/9tfDpLMv3rLEmgx1I34V64cDgfFf903nk6UY+b4IWM9EwabapxH+EZSHWaWeC4O1gUa20AcgT4GYeUBOXtw3+TvBaS9bkbVcuGs6o/FjBJTxHNEZtdlizJ9q0L1/uVPmauGAOPKi3hEDVJVoOA66dOSnvl79QRD+01/nEVjvHfxUPylGe6yZf4jNrHe37mXdM6shrdqeGlwkgjZ1yINvh+YQGR5dDKNrklXOBEnJ2Y+OWm2zHMvH1iFVOHtWdMggegsnVtu8fDgI2hkWp6La/XERzOc3BzzvV56gwvOrf5m4mZa4a4I8g88CHSbtUSWU16U9Aes9UCThzsn1N1517OeatXLPz5fMrgCh0fai4ni+rAnSMff8Qqc81EJannsL1bn78OtTFCk9glKAkvoc8fkgFrUa/2x8QBhFCbt/4NrW1mjXrGG7u3RtWnKlFsXFVsQ3slY=
+  - secure: ikG+p2TIbAEAE+ra4e3aRCdRosiUHEh7dBgr0T5A8nr0kNBGNbSMgTzJBlKrqop8ZEbsHrDn1wM5rgETfZNiwcgQxB34ep7wn4HYckiSGUBl5UqMsSmHnV3JLteC9EdjDGMIZnIlPvUhqMbsiciIrKUEXv2cFtAkSYcnbqhPoFUpntwDBVHD/shZ9pbdwvq4TI2RvJ5+0I4oU8/i88mKAeFQFvTf+bAroKeNpetNgNmoFaxSCatKxKwJNLXpSaGiU+746mn5lnfYF0FMykYBgRZjKd2eougeDXAk3+SV/UeIzCgNjK1Hx4HVgpXKc0vYNw0yMIgxq59GRSA74CSB3OzdWsSMO0tfKcpJl16jjLaG8/vWEVkswKSX21182kZ/WiSLyapvPpiEJ8casAy47sZq+EhMuWPZ6sz9c7GN0IA8n7285yH6apK5YZ1xc6zIZ1wp7c/LHy5FEAeNiobiff81xEYV21l9N9RDOEbcRHSc4qqy2mgZepfgsrACzmj+iMjGQgCNu5iIZ5pIbfi/DOvFCvLPs5GbLCcO7hRRF/rq6lPYAO/ZnbPAZ9Cg4DZqC80QKUzYqwRkLFncRAL+Bx2rr/d4Y/WZpABHuCnA5uqT3IJ9JMfRonqz6fCkxuOYCYavYsIEK3UV9n7xAs0uo2Qsp9pGGefG27hhNNgduBs=
 before_install:
 - chmod +x *.sh
-
-
-
+- env
+- docker login -u$DOCKER_USER -p$DOCKER_PASS
 install:
-  - ./go_build.sh
+- "./go_build.sh"
+- if [[ -z "$TRAVIS_TAG" ]]; then docker build ./ -t $DEV_REPO && docker push $DEV_REPO;
+  fi
+- if [[ -n "$TRAVIS_TAG" ]]; then docker pull $DEV_REPO && docker tag $DEV_REPO $RELEASE_REPO
+  && docker tag $DEV_REPO $LATEST_REPO && docker push $RELEASE_REPO && docker push
+  $LATEST_REPO; fi

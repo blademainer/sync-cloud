@@ -1,16 +1,76 @@
 @startuml
 
-package discovery
-package index {
-    node raft
+cloud discovery {
+    node register
+    node discoverer
 }
-package fs {
-    node transfer
-    node store
+
+cloud node1 {
+    package index1 {
+        node raft1
+    }
+    package fs1 {
+        node transfer1
+        node kv_store1
+        node file_listener1
+    }
+    package config1 {
+        node yaml1
+        node ui1
+    }
+    file_listener1 ..> os1: watch
+    file_listener1 -> raft1
+    raft1 --> kv_store1: new snapshot
+    raft1 --> transfer1: file events
 }
-package config {
-    node yaml
-    node ui
+
+cloud node2 {
+    package index2 {
+        node raft2
+    }
+    package fs2 {
+        node transfer2
+        node kv_store2
+        node file_listener2
+    }
+    package config2 {
+        node yaml2
+        node ui2
+    }
+    file_listener2 ..> os2: watch
+    file_listener2 -> raft2
+    raft2 --> kv_store2: new snapshot
+    raft2 --> transfer2: file events
+
+
 }
+
+cloud node3 {
+    package index3 {
+        node raft3
+    }
+    package fs3 {
+        node transfer3
+        node kv_store3
+        node file_listener3
+    }
+    package config3 {
+        node yaml3
+        node ui3
+    }
+    file_listener3 ..> os3: watch
+    file_listener3 -> raft3
+    raft2 --> kv_store2: new snapshot
+    raft3 --> transfer3: file events
+
+}
+
+raft1 <-> raft2
+raft2 <-> raft3
+raft1 <-> raft3
+transfer1 <--> transfer2
+transfer2 <--> transfer3
+transfer1 <--> transfer3
+
 
 @enduml

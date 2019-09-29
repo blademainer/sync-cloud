@@ -1,20 +1,19 @@
 package store
 
+import "github.com/blademainer/commons/pkg/factory"
+
 type Data interface {
 	Encode() []byte
 	Decode([]byte) interface{}
 }
 
-type Interfaces interface {
+type Store interface {
+	// Store data to local
 	Store(Data)
+	// Recover all data
 	Recover([]Data)
 	SetPath(path string)
 	StoreType() string
 }
 
-var Stores map[string]Interfaces
-
-func RegisterStore(i Interfaces) {
-	storeType := i.StoreType()
-	Stores[storeType] = i
-}
+var f = factory.InitFactory()
